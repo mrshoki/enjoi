@@ -1,17 +1,20 @@
 {
   "name": "enjoi",
-  "version": "0.2.2",
-  "description": "Converts json-schema to Joi schema for validation.",
-  "main": "lib/enjoi.js",
+  "version": "9.0.1",
+  "license": "Apache 2.0",
+  "description": "Converts json-schema to Joi schema.",
+  "main": "./index.js",
   "scripts": {
     "test": "tape test/*.js",
-    "cover": "istanbul cover tape -- test/*.js",
-    "lint": "jshint -c .jshintrc lib/*.js",
-    "bench": "node test/bench/run.js"
+    "cover": "nyc --reporter=lcov --lines 100 npm test && nyc report",
+    "lint": "eslint index.js lib/resolver.js"
   },
   "repository": {
     "type": "git",
     "url": "git://github.com/tlivings/enjoi.git"
+  },
+  "engines": {
+    "node": ">=8"
   },
   "keywords": [
     "joi",
@@ -22,23 +25,45 @@
     "hapi",
     "hapijs"
   ],
-  "author": "Trevor Livingston",
-  "license": "Apache 2.0",
+  "author": "Trevor Livingston <tlivings@gmail.com>",
+  "contributors": [
+    "maldimirov",
+    "yujunlong2000",
+    "morgs32",
+    "hpadrick",
+    "justinmchase",
+    "nevezide",
+    "iamjoeker",
+    "Nava2",
+    "djMax",
+    "jojow",
+    "pibi",
+    "normpng",
+    "bardzusny",
+    "vh",
+    "nfstein",
+    "dimichgh",
+    "yosheeck",
+    "joescho",
+    "rmothilal",
+    "sprootshift",
+    "nlundquist"
+  ],
   "bugs": {
     "url": "https://github.com/tlivings/enjoi/issues"
   },
   "homepage": "https://github.com/tlivings/enjoi",
   "dependencies": {
-    "core-util-is": "^1.0.1",
-    "joi": "^4.7.0"
+    "@hapi/bourne": "^2.0.0",
+    "@hapi/hoek": "^9.0.3"
+  },
+  "peerDependencies": {
+    "joi": "^17.1.0"
   },
   "devDependencies": {
-    "hammertime": "^0.1.2",
-    "is-my-json-valid": "^2.7.0",
-    "istanbul": "^0.3.2",
-    "jshint": "^2.5.5",
-    "tape": "^2.14.0",
-    "themis": "^1.0.0",
-    "tv4": "^1.1.0"
+    "joi": "^17.1.0",
+    "eslint": "^6.8.0",
+    "nyc": "^15.0.0",
+    "tape": "^5.0.0"
   }
 }

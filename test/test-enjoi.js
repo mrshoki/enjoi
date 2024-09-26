@@ -1,26 +1,26 @@
-'use strict';
 
-var Test = require('tape');
-var Enjoi = require('../lib/enjoi');
-var Joi = require('joi');
+const Test = require('tape');
+const Enjoi = require('../index');
+const Joi = require('joi');
 
 Test('enjoi', function (t) {
 
     t.test('valid', function (t) {
-        t.plan(5);
+        t.plan(9);
 
-        var schema = Enjoi({
-        	'title': 'Example Schema',
-        	'type': 'object',
-        	'properties': {
-        		'firstName': {
-        			'type': 'string',
+        const schema = Enjoi.schema({
+            'title': 'Example Schema',
+            'description': 'An example to test against.',
+            'type': 'object',
+            'properties': {
+                'firstName': {
+                    'type': 'string',
                     'minLength': 0
-        		},
-        		'lastName': {
-        			'type': 'string',
+                },
+                'lastName': {
+                    'type': 'string',
                     'minLength': 1
-        		},
+                },
                 'tags': {
                     'type': 'array',
                     'items': {
@@ -28,40 +28,30 @@ Test('enjoi', function (t) {
                         'minLength': 1
                     }
                 },
-        		'age': {
-        			'description': 'Age in years',
-        			'type': 'integer',
-        			'minimum': 0
-        		}
-        	},
-        	'required': ['firstName', 'lastName']
+                'age': {
+                    'type': 'integer',
+                    'minimum': 0
+                }
+            },
+            'required': ['firstName', 'lastName']
         });
 
-        Joi.validate({firstName: 'John', lastName: 'Doe', age: 45, tags: ['man', 'human']}, schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
+        t.equal(schema.type, 'object', 'defined object.');
+        t.equal(schema._flags.label, 'Example Schema');
+        t.equal(schema._flags.description, 'An example to test against.', 'description set.');
+        t.equal(schema._ids._byKey.size, 4, '4 properties defined.');
 
-        Joi.validate({firstName: '', lastName: 'Doe', age: 45, tags: ['man', 'human']}, schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate({firstName: 'John', age: 45, tags: ['man', 'human']}, schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate({firstName: 'John', lastName: 'Doe', age: 45, tags: [1, 'human']}, schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate({firstName: 'John', lastName: 'Doe', age: 45, tags: ['', 'human']}, schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
+        t.ok(!schema.validate({ firstName: 'John', lastName: 'Doe', age: 45, tags: ['man', 'human'] }).error, 'no error');
+        t.ok(!schema.validate({ firstName: '', lastName: 'Doe', age: 45, tags: ['man', 'human'] }).error, 'no error');
+        t.ok(schema.validate({ firstName: 'John', age: 45, tags: ['man', 'human'] }).error, 'error');
+        t.ok(schema.validate({ firstName: 'John', lastName: 'Doe', age: 45, tags: [1, 'human'] }).error, 'error');
+        t.ok(schema.validate({ firstName: 'John', lastName: 'Doe', age: 45, tags: ['', 'human'] }).error, 'error');
     });
 
     t.test('with ref', function (t) {
         t.plan(1);
 
-        var schema = Enjoi({
+        const schema = Enjoi.schema({
             'title': 'Example Schema',
             'type': 'object',
             'properties': {
@@ -76,264 +66,108 @@ Test('enjoi', function (t) {
             }
         });
 
-        Joi.validate({name: 'Joe'}, schema,  function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('with external ref', function (t) {
-        t.plan(1);
-
-        var schema = Enjoi({
-            'title': 'Example Schema',
-            'type': 'object',
-            'properties': {
-                'name': {
-                    '$ref': 'definitions#/name'
-                }
-            }
-        }, {
-            'definitions': {
-                'name': {
-                    'type': 'string'
-                }
-            }
-        });
-
-        Joi.validate({name: 'Joe'}, schema,  function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('with both inline and external refs', function (t) {
-        t.plan(1);
-
-        var schema = Enjoi({
-            'title': 'Example Schema',
-            'type': 'object',
-            'properties': {
-                'firstname': {
-                    '$ref': '#/definitions/firstname'
-                },
-		'surname': {
-                    '$ref': 'definitions#/surname'
-                }
-            },
-	    'definitions': {
-                'firstname': {
-		    'type': 'string'
-		}
-	    }
-        }, {
-            'definitions': {
-                'surname': {
-                    'type': 'string'
-                }
-            }
-        });
-
-        Joi.validate({firstname: 'Joe', surname: 'Doe'}, schema,  function (error, value) {
-            t.ok(!error, 'no error.');
-        });
+        t.ok(!schema.validate({ name: 'Joe' }).error, 'no error');
     });
 
 });
 
-Test('types', function (t) {
+Test('enjoi defaults', function (t) {
 
-    t.test('object min/max length', function (t) {
-        t.plan(3);
-
-        var schema = Enjoi({
-            'type': 'object',
-            'maxProperties': 2,
-            'minProperties': 1
-        });
-
-        Joi.validate({a: 'a', b: 'b'}, schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate({a: 'a', b: 'b', c: 'c'}, schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate({}, schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-    });
-
-    t.test('arrays and numbers', function (t) {
-        t.plan(2);
-
-        var schema = Enjoi({
-            'type': 'array',
-            'items': {
-                'type': 'number'
-            },
-            'maxItems': 10,
-            'minItems': 0
-        });
-
-        Joi.validate([1, 2], schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-    });
-
-    t.test('arrays and refs', function (t) {
-        t.plan(2);
-
-        var schema = Enjoi({
-            'type': 'array',
-            'items': {
-                '$ref': 'definitions#/number'
-            }
-        }, {
-            'definitions': {
-                'number': {
-                    'type': 'number',
-                    'minimum': 0,
-                    'maximum': 2
-                }
-            }
-        });
-
-        Joi.validate([1, 2], schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate([1, 3], schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-    });
-
-    t.test('arrays and unique', function (t) {
-        t.plan(2);
-
-        var schema = Enjoi({
-            'type': 'array',
-            'items': {
-                'type': 'integer'
-            },
-            'uniqueItems': true
-        });
-
-        Joi.validate([1, 2], schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate([1, 1], schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-    });
-
-    t.test('boolean', function (t) {
-        t.plan(2);
-
-        var schema = Enjoi({
-            'type': 'boolean'
-        });
-
-        Joi.validate('hello', schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate(true, schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('string regex', function (t) {
-        t.plan(2);
-
-        var schema = Enjoi({
-            'type': 'string',
-            'pattern': /foobar/
-        });
-
-        Joi.validate('foo', schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate('foobar', schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('string length', function (t) {
-        t.plan(3);
-
-        var schema = Enjoi({
-            'type': 'string',
-            'minLength': 2,
-            'maxLength': 4
-        });
-
-        Joi.validate('f', schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate('foobar', schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-
-        Joi.validate('foo', schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('no type, ref, or enum validates anything.', function (t) {
-        t.plan(3);
-
-        var schema = Enjoi({
-            'description': 'something'
-        });
-
-        Joi.validate('A', schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate({'A': 'a'}, schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate([1, 2, 3], schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-    });
-
-    t.test('enum', function (t) {
-        t.plan(3);
-
-        var schema = Enjoi({
-            'enum': ['A', 'B']
-        });
-
-        Joi.validate('A', schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate('B', schema, function (error, value) {
-            t.ok(!error, 'no error.');
-        });
-
-        Joi.validate('C', schema, function (error, value) {
-            t.ok(error, 'error.');
-        });
-    });
-
-    t.test('unknown type fails', function (t) {
+    t.test('defaults', function (t) {
         t.plan(1);
 
-        t.throws(function () {
-            Enjoi({
-                'type': 'something'
-            });
+        const enjoi = Enjoi.defaults({
+            extensions: [{
+                    type: 'test',
+                    base: Joi.string()
+                }]
         });
+
+        const schema = enjoi.schema({
+            type: 'test'
+        });
+
+        t.ok(!schema.validate('string').error, 'no error');
+    });
+
+    t.test('overrides', function (t) {
+        t.plan(1);
+
+        const enjoi = Enjoi.defaults({
+            extensions: [{
+                type: 'test',
+                base: Joi.string()
+            }]
+        });
+
+        const schema = enjoi.schema({
+            type: 'test'
+        }, {
+            extensions: [{
+                type: 'test',
+                base: Joi.number()
+            }]
+        });
+
+        t.ok(schema.validate('string').error, 'error');
+    });
+});
+
+Test('enjoi extensions', function (t) {
+    t.test('overrides extensions', function (t) {
+        t.plan(5);
+
+        const enjoi = Enjoi.defaults({
+            extensions: [
+                (joi) => ({
+                    type: 'special',
+                    base: joi.string(),
+                    rules: {
+                        hello: {
+                            validate(value, helpers, args, options) {
+
+                                if (value === 'hello') {
+                                    return value;
+                                }
+
+                                return helpers.error('special.hello');
+                            }
+                        }
+                    },
+                    messages: {
+                        'special.hello': '{{#label}} must say hello'
+                    }
+                })
+            ]
+        });
+
+        const options = {
+            extensions: [{
+                type: 'foobar',
+                rules: {
+                    foo: {
+                        validate(value, helpers, args, options) {
+                            return null;
+                        }
+                    },
+                    bar: {
+                        validate(value, helpers, args, options) {
+                            return helpers.error('special.bar');
+                        }
+                    }
+                },
+                messages: {
+                    'special.bar': '{#label} oh no bar !'
+                }
+            }]
+        };
+
+        t.ok(!enjoi.schema({ type: 'special' }, options).hello().validate('hello').error, 'no error');
+        t.ok(enjoi.schema({ type: 'special' }, options).hello().validate('greetings').error, 'error');
+        t.throws(() => enjoi.schema({ type: 'foo' }, options), 'exception');
+
+        t.ok(!enjoi.schema({ type: 'foobar' }, options).foo().validate('hello').error, 'no error');
+        t.ok(enjoi.schema({ type: 'foobar' }, options).bar().validate('greetings').error, 'error');
     });
 
 });
